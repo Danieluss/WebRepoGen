@@ -34,7 +34,6 @@ public class BuilderProcessor extends AbstractProcessor {
     private static final String WEB = "web";
     private static final String REPO = "repository";
     private static final String SERVICE = "service";
-
     private void printController(String targetPackage, String name, String type, String typeSimple, String idType, String controllerBase, String repositoryBase) {
         JavaFileObject builderFile = null;
         name += "Controller";
@@ -42,12 +41,21 @@ public class BuilderProcessor extends AbstractProcessor {
             builderFile = processingEnv.getFiler()
                     .createSourceFile(subpackage(targetPackage, name));
 
-            try (PrintWriter out = new PrintWriter(builderFile.openWriter())) {
+            try (ProcessingWriter out = new ProcessingWriter(new PrintWriter(builderFile.openWriter()))) {
                 out.println("package " + targetPackage + ";");
-                out.println("@org.springframework.stereotype.Controller");
-                out.println("@org.springframework.web.bind.annotation.RequestMapping(\"/api/" + typeSimple.toLowerCase() + "\")");
+                out.importType("org.springframework.stereotype.Controller");
+                out.importType("org.springframework.web.bind.annotation.RequestMapping");
+                out.importType("org.springframework.beans.factory.annotation.Autowired");
+                type = out.importType(type);
+                idType = out.importType(idType);
+                controllerBase = out.importType(controllerBase);
+                repositoryBase = out.importType(repositoryBase);
+                out.println();
+
+                out.println("@Controller");
+                out.println("@RequestMapping(\"/api/" + typeSimple.toLowerCase() + "\")");
                 out.println("public class " + name + " extends " + controllerBase + "<" + type + ", " + idType + "> {");
-                out.println("\t@org.springframework.beans.factory.annotation.Autowired");
+                out.println("\t@Autowired");
                 out.println("\tpublic " + name + "(" + repositoryBase + "<" + type + ", " + idType + "> repository) {");
                 out.println("\t\tinit(repository, " + type + ".class);");
                 out.println("\t}");
@@ -65,9 +73,15 @@ public class BuilderProcessor extends AbstractProcessor {
             builderFile = processingEnv.getFiler()
                     .createSourceFile(subpackage(targetPackage, name));
 
-            try (PrintWriter out = new PrintWriter(builderFile.openWriter())) {
+            try (ProcessingWriter out = new ProcessingWriter(new PrintWriter(builderFile.openWriter()))) {
                 out.println("package " + targetPackage + ";");
-                out.println("@org.springframework.stereotype.Repository");
+                type = out.importType(type);
+                idType = out.importType(idType);
+                repositoryBase = out.importType(repositoryBase);
+                out.importType("org.springframework.stereotype.Repository;");
+                out.println();
+
+                out.println("@Repository");
                 out.println("public interface " + name + " extends " + repositoryBase + "<" + type + ", " + idType + "> {}");
             }
         } catch (IOException e) {
