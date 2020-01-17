@@ -49,7 +49,7 @@ public class BuilderProcessor extends AbstractProcessor {
                 out.println("public class " + name + " extends " + controllerBase + "<" + type + ", " + idType + "> {");
                 out.println("\t@org.springframework.beans.factory.annotation.Autowired");
                 out.println("\tpublic " + name + "(" + repositoryBase + "<" + type + ", " + idType + "> repository) {");
-                out.println("\t\tsuper(repository);");
+                out.println("\t\tinit(repository, " + type + ".class);");
                 out.println("\t}");
                 out.println("}");
             }

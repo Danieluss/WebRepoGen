@@ -9,12 +9,16 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import java.io.Serializable;
 import java.util.List;
 
-public abstract class AbstractCRUDController<T, ID extends Serializable> {
+public abstract class AbstractCRUDController<T, ID extends Serializable> implements ICRUDController<T, ID> {
 
-    private JpaRepository<T, ID> repo;
+    protected JpaRepository<T, ID> repo;
 
-    public AbstractCRUDController(JpaRepository<T, ID> repo) {
-        this.repo = repo;
+    public AbstractCRUDController() {
+    }
+
+    @Override
+    public void init(JpaRepository<T, ID> jpaRepository, Class<T> clazz) {
+        this.repo = jpaRepository;
     }
 
     @RequestMapping(value = "/list", method = RequestMethod.GET)
