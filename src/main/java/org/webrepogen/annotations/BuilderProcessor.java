@@ -20,8 +20,10 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 
@@ -34,59 +36,82 @@ public class BuilderProcessor extends AbstractProcessor {
     private static final String WEB = "web";
     private static final String REPO = "repository";
     private static final String SERVICE = "service";
-    private void printController(String targetPackage, String name, String type, String typeSimple, String idType, String controllerBase, String repositoryBase) {
+
+    private void writeToFile(String name, String targetPackage, Consumer<ProcessingWriter> consumer) {
         JavaFileObject builderFile = null;
-        name += "Controller";
         try {
             builderFile = processingEnv.getFiler()
                     .createSourceFile(subpackage(targetPackage, name));
 
             try (ProcessingWriter out = new ProcessingWriter(new PrintWriter(builderFile.openWriter()))) {
-                out.println("package " + targetPackage + ";");
-                out.importType("org.springframework.stereotype.Controller");
-                out.importType("org.springframework.web.bind.annotation.RequestMapping");
-                out.importType("org.springframework.beans.factory.annotation.Autowired");
-                type = out.importType(type);
-                idType = out.importType(idType);
-                controllerBase = out.importType(controllerBase);
-                repositoryBase = out.importType(repositoryBase);
-                out.println();
-
-                out.println("@Controller");
-                out.println("@RequestMapping(\"/api/" + typeSimple.toLowerCase() + "\")");
-                out.println("public class " + name + " extends " + controllerBase + "<" + type + ", " + idType + "> {");
-                out.println("\t@Autowired");
-                out.println("\tpublic " + name + "(" + repositoryBase + "<" + type + ", " + idType + "> repository) {");
-                out.println("\t\tinit(repository, " + type + ".class);");
-                out.println("\t}");
-                out.println("}");
+                consumer.accept(out);
             }
         } catch (IOException e) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "Cannot create output file");
         }
+
+    }
+
+    private void printStaticController(String targetPackage, String name, List<String> types) {
+        String nName = name + "Controller";
+        writeToFile(nName, targetPackage, (out) -> {
+            out.println("package " + targetPackage + ";");
+            out.importType("org.springframework.stereotype.Controller");
+            out.importType("org.springframework.web.bind.annotation.RequestMapping");
+            out.importType("org.springframework.http.MediaType");
+            out.importType("org.springframework.web.bind.annotation.RequestMethod");
+            out.importType("java.util.Arrays");
+            out.importType("java.util.List");
+            out.println();
+
+            out.println("@Controller");
+            out.println("@RequestMapping(\"/api\")");
+            out.println("public class " + nName + " {");
+            out.println("\t@RequestMapping(value=\"/description\",method=RequestMethod.GET,produces=MediaType.APPLICATION_JSON_VALUE)");
+            out.println("\tpublic List<String> description() {");
+            out.println("\t\treturn Arrays.asList(" + types.stream().map(type -> "\"" + type + "\"").collect(Collectors.joining(",")) + ");");
+            out.println("\t}");
+            out.println("}");
+        });
+    }
+
+    private void printController(String targetPackage, String name, String type, String typeSimple, String idType, String controllerBase, String repositoryBase) {
+        String nName = name + "Controller";
+        writeToFile(nName, targetPackage, (out) -> {
+            out.println("package " + targetPackage + ";");
+            out.importType("org.springframework.stereotype.Controller");
+            out.importType("org.springframework.web.bind.annotation.RequestMapping");
+            out.importType("org.springframework.beans.factory.annotation.Autowired");
+            String nType = out.importType(type);
+            String nIdType = out.importType(idType);
+            String nControllerBase = out.importType(controllerBase);
+            String nRepositoryBase = out.importType(repositoryBase);
+            out.println();
+
+            out.println("@Controller");
+            out.println("@RequestMapping(\"/api/" + typeSimple.toLowerCase() + "\")");
+            out.println("public class " + nName + " extends " + controllerBase + "<" + nType + ", " + idType + "> {");
+            out.println("\t@Autowired");
+            out.println("\tpublic " + nName + "(" + repositoryBase + "<" + nType + ", " + idType + "> repository) {");
+            out.println("\t\tinit(repository, " + nType + ".class);");
+            out.println("\t}");
+            out.println("}");
+        });
     }
 
     private void printRepo(String targetPackage, String name, String type, String typeSimple, String idType, String repositoryBase) {
-        JavaFileObject builderFile = null;
-        name += "Repository";
-        try {
-            builderFile = processingEnv.getFiler()
-                    .createSourceFile(subpackage(targetPackage, name));
+        String nName = name + "Repository";
+        writeToFile(nName, targetPackage, (out) -> {
+            out.println("package " + targetPackage + ";");
+            String nType = out.importType(type);
+            String nIdType = out.importType(idType);
+            String nRepositoryBase = out.importType(repositoryBase);
+            out.importType("org.springframework.stereotype.Repository;");
+            out.println();
 
-            try (ProcessingWriter out = new ProcessingWriter(new PrintWriter(builderFile.openWriter()))) {
-                out.println("package " + targetPackage + ";");
-                type = out.importType(type);
-                idType = out.importType(idType);
-                repositoryBase = out.importType(repositoryBase);
-                out.importType("org.springframework.stereotype.Repository;");
-                out.println();
-
-                out.println("@Repository");
-                out.println("public interface " + name + " extends " + repositoryBase + "<" + type + ", " + idType + "> {}");
-            }
-        } catch (IOException e) {
-            processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "Cannot create output file");
-        }
+            out.println("@Repository");
+            out.println("public interface " + nName + " extends " + nRepositoryBase + "<" + nType + ", " + nIdType + "> {}");
+        });
     }
 
     private void printService(String targetPackage, String name, String type, String typeSimple, String idType) {
@@ -164,6 +189,7 @@ public class BuilderProcessor extends AbstractProcessor {
             repositoryBase = wrConfiguration.repositoryBaseInterface();
         }
         System.out.println("WR configured");
+        List<String> types = new ArrayList<>();
         Set<? extends Element> elements = ElementFilter.typesIn(roundEnv.getElementsAnnotatedWith(generateAnnotationClass));
         for (Element element : elements) {
             if (element.getKind() == ElementKind.CLASS && element.getAnnotation(Entity.class) != null) {
@@ -189,10 +215,11 @@ public class BuilderProcessor extends AbstractProcessor {
                 System.out.println("Generating code for " + elementName);
                 printRepo(targetRepoPackage, elementName, elementTypeName, typeSimple, idTypeName, repositoryBase);
                 String targetWebPackage = subpackage(getPrioritized(forcePackage, repoPackage, defaultPackage), WEB);
+                types.add(typeSimple);
                 printController(targetWebPackage, elementName, elementTypeName, typeSimple, idTypeName, controllerBase, repositoryBase);
-
             }
         }
+        printStaticController(subpackage(repoPackage, WEB), "Static", types);
 
         return true;
     }
