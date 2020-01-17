@@ -1,6 +1,7 @@
 package org.webrepogen.annotations;
 
 import com.google.auto.service.AutoService;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Processor;
@@ -56,7 +57,7 @@ public class BuilderProcessor extends AbstractProcessor {
         String nName = name + "Controller";
         writeToFile(nName, targetPackage, (out) -> {
             out.println("package " + targetPackage + ";");
-            out.importType("org.springframework.stereotype.Controller");
+            out.importType("org.springframework.web.bind.annotation.RestController");
             out.importType("org.springframework.web.bind.annotation.RequestMapping");
             out.importType("org.springframework.http.MediaType");
             out.importType("org.springframework.web.bind.annotation.RequestMethod");
@@ -64,7 +65,7 @@ public class BuilderProcessor extends AbstractProcessor {
             out.importType("java.util.List");
             out.println();
 
-            out.println("@Controller");
+            out.println("@RestController");
             out.println("@RequestMapping(\"/api\")");
             out.println("public class " + nName + " {");
             out.println("\t@RequestMapping(value=\"/description\",method=RequestMethod.GET,produces=MediaType.APPLICATION_JSON_VALUE)");
@@ -79,7 +80,7 @@ public class BuilderProcessor extends AbstractProcessor {
         String nName = name + "Controller";
         writeToFile(nName, targetPackage, (out) -> {
             out.println("package " + targetPackage + ";");
-            out.importType("org.springframework.stereotype.Controller");
+            out.importType("org.springframework.web.bind.annotation.RestController");
             out.importType("org.springframework.web.bind.annotation.RequestMapping");
             out.importType("org.springframework.beans.factory.annotation.Autowired");
             String nType = out.importType(type);
@@ -88,7 +89,7 @@ public class BuilderProcessor extends AbstractProcessor {
             String nRepositoryBase = out.importType(repositoryBase);
             out.println();
 
-            out.println("@Controller");
+            out.println("@RestController");
             out.println("@RequestMapping(\"/api/" + typeSimple.toLowerCase() + "\")");
             out.println("public class " + nName + " extends " + controllerBase + "<" + nType + ", " + idType + "> {");
             out.println("\t@Autowired");
