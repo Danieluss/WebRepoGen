@@ -1,6 +1,7 @@
 package org.webrepogen.annotations;
 
 import com.google.auto.service.AutoService;
+import lombok.ToString;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -193,7 +194,7 @@ public class BuilderProcessor extends AbstractProcessor {
         List<String> types = new ArrayList<>();
         Set<? extends Element> elements = ElementFilter.typesIn(roundEnv.getElementsAnnotatedWith(generateAnnotationClass));
         for (Element element : elements) {
-            if (element.getKind() == ElementKind.CLASS && element.getAnnotation(Entity.class) != null) {
+            if (element.getKind() == ElementKind.CLASS && element.getAnnotation(Entity.class) != null && element.getAnnotation(ExcludedEntity.class) == null) {
                 PackageElement packageElement = processingEnv.getElementUtils().getPackageOf(element);
                 String defaultPackage = packageElement.getQualifiedName().toString();
                 String forcePackage = "";
