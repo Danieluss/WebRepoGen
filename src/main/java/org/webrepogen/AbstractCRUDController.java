@@ -11,14 +11,14 @@ import java.util.List;
 
 public abstract class AbstractCRUDController<T, ID extends Serializable> implements ICRUDController<T, ID> {
 
-    protected JpaRepository<T, ID> repo;
+    protected ICRUDRepository<T, ID> repo;
 
     public AbstractCRUDController() {
     }
 
     @Override
-    public void init(JpaRepository<T, ID> jpaRepository, Class<T> clazz) {
-        this.repo = jpaRepository;
+    public void init(ICRUDRepository<T, ID> repository, Class<T> clazz) {
+        this.repo = repository;
     }
 
     @RequestMapping(value = "/list", method = RequestMethod.GET)
