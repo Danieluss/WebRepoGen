@@ -17,7 +17,7 @@ public abstract class AbstractCRUDController<T, ID extends Serializable> impleme
     }
 
     @Override
-    public void init(ICRUDRepository<T, ID> repository, Class<T> clazz) {
+    public void init(ICRUDRepository<T, ID> repository, Class<T> clazz, Class<ID> idClazz) {
         this.repo = repository;
     }
 

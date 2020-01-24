@@ -91,10 +91,10 @@ public class BuilderProcessor extends AbstractProcessor {
 
             out.println("@RestController");
             out.println("@RequestMapping(\"/api/" + typeSimple.toLowerCase() + "\")");
-            out.println("public class " + nName + " extends " + controllerBase + "<" + nType + ", " + idType + "> {");
+            out.println("public class " + nName + " extends " + nControllerBase + "<" + nType + ", " + nIdType + "> {");
             out.println("\t@Autowired");
-            out.println("\tpublic " + nName + "(" + repositoryBase + "<" + nType + ", " + idType + "> repository) {");
-            out.println("\t\tinit(repository, " + nType + ".class);");
+            out.println("\tpublic " + nName + "(" + nRepositoryBase + "<" + nType + ", " + nIdType + "> repository) {");
+            out.println("\t\tinit(repository, " + nType + ".class, " + nIdType + ".class);");
             out.println("\t}");
             out.println("}");
         });
