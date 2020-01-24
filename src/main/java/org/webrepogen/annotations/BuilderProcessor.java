@@ -1,13 +1,11 @@
 package org.webrepogen.annotations;
 
 import com.google.auto.service.AutoService;
+import com.google.common.collect.ImmutableList;
 import lombok.ToString;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.annotation.processing.AbstractProcessor;
-import javax.annotation.processing.Processor;
-import javax.annotation.processing.RoundEnvironment;
-import javax.annotation.processing.SupportedAnnotationTypes;
+import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
@@ -22,6 +20,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -169,6 +168,18 @@ public class BuilderProcessor extends AbstractProcessor {
         return SourceVersion.latestSupported();
     }
 
+    private List<? extends Element> getIdsRecursive(TypeElement element) {
+        if(element == null) {
+            return ImmutableList.of();
+        }
+        List<? extends Element> ids = processingEnv.getElementUtils()
+                .getAllMembers(element).stream().filter(member -> member.getAnnotation(Id.class) != null).collect(Collectors.toList());
+        if(ids.size() == 0) {
+            return getIdsRecursive((TypeElement) processingEnv.getTypeUtils().asElement((element).getSuperclass()));
+        }
+        return ids;
+    }
+
     @Override
     public boolean process(Set<? extends TypeElement> annotations,
                            RoundEnvironment roundEnv) {
@@ -194,6 +205,7 @@ public class BuilderProcessor extends AbstractProcessor {
         List<String> types = new ArrayList<>();
         Set<? extends Element> elements = ElementFilter.typesIn(roundEnv.getElementsAnnotatedWith(generateAnnotationClass));
         for (Element element : elements) {
+            System.out.println(element);
             if (element.getKind() == ElementKind.CLASS && element.getAnnotation(Entity.class) != null && element.getAnnotation(ExcludedEntity.class) == null) {
                 PackageElement packageElement = processingEnv.getElementUtils().getPackageOf(element);
                 String defaultPackage = packageElement.getQualifiedName().toString();
@@ -202,15 +214,15 @@ public class BuilderProcessor extends AbstractProcessor {
                 if (genInfo != null)
                     forcePackage = element.getAnnotation(GenerateWebRepository.class).targetPackage();
                 String targetRepoPackage = subpackage(getPrioritized(forcePackage, repoPackage, defaultPackage), REPO);
-                List<? extends Element> ids = processingEnv.getElementUtils()
-                        .getAllMembers((TypeElement) element).stream().filter(member -> member.getAnnotation(Id.class) != null).collect(Collectors.toList());
                 String idTypeName;
                 String elementName = element.getSimpleName().toString();
                 String elementTypeName = element.toString();
                 String typeSimple = element.getSimpleName().toString();
+                List<? extends Element> ids = getIdsRecursive((TypeElement) element);
                 if (ids.size() == 1) {
                     idTypeName = ids.get(0).asType().toString();
                 } else {
+                    System.out.println("X");
                     processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, "Wrong number of ids");
                     continue;
                 }
